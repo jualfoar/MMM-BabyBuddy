@@ -1,0 +1,11 @@
+{
+  "name": "MMM-BabyBuddy",
+  "version": "1.0.0",
+  "description": "MagicMirror2 module to display Baby Buddy tracking data (feedings, sleep, diapers, timers)",
+  "main": "MMM-BabyBuddy.js",
+  "keywords": ["MagicMirror2", "babybuddy", "baby", "tracker"],
+  "license": "MIT",
+  "dependencies": {
+    "node-fetch": "^2.7.0"
+  }
+}

@@ -1,0 +1,117 @@
+.MMM-BabyBuddy {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 280px;
+  font-family: inherit;
+}
+
+/* ── Loading & Error states ───────────────────────────── */
+
+.bb-loading {
+  text-align: center;
+  color: #666;
+  padding: 20px 0;
+  font-size: 0.85em;
+}
+
+.bb-error-banner {
+  font-size: 0.75em;
+  color: #ff6b6b;
+  background: rgba(255, 50, 50, 0.1);
+  border-radius: 4px;
+  padding: 5px 10px;
+  margin-bottom: 2px;
+}
+
+/* ── Cards ────────────────────────────────────────────── */
+
+.bb-card {
+  display: grid;
+  grid-template-columns: 34px 1fr;
+  align-items: center;
+  gap: 0 10px;
+  padding: 9px 12px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  border-left: 3px solid #555;
+}
+
+.bb-card--feeding { border-left-color: #4fc3f7; }
+.bb-card--sleep   { border-left-color: #7986cb; }
+.bb-card--change  { border-left-color: #81c784; }
+
+.bb-card-icon {
+  font-size: 1.4em;
+  text-align: center;
+  line-height: 1;
+}
+
+.bb-card-content {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.bb-card-label {
+  font-size: 0.6em;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  color: #888;
+  line-height: 1.2;
+}
+
+.bb-card-primary {
+  font-size: 0.95em;
+  font-weight: 600;
+  color: #fff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.bb-card-secondary {
+  font-size: 0.78em;
+  color: #aaa;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ── Active Timers ────────────────────────────────────── */
+
+.bb-timers {
+  padding: 8px 12px;
+  background: rgba(240, 165, 0, 0.08);
+  border-radius: 8px;
+  border-left: 3px solid #f0a500;
+}
+
+.bb-timers-heading {
+  font-size: 0.65em;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  color: #f0a500;
+  margin-bottom: 5px;
+}
+
+.bb-timer-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 2px 0;
+}
+
+.bb-timer-label {
+  font-size: 0.85em;
+  color: #ddd;
+}
+
+.bb-timer-elapsed {
+  font-size: 0.85em;
+  font-weight: 600;
+  color: #f0a500;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.03em;
+}
