@@ -27,8 +27,21 @@ module.exports = NodeHelper.create({
   },
 
   async fetchAll(config) {
-    const base = config.babyBuddyUrl.replace(/\/$/, "");
-    const headers = { Authorization: `Token ${config.apiKey}` };
+    // Env vars take precedence over config.js so secrets stay out of the config file.
+    const baseUrl = process.env.BABYBUDDY_HOST || config.babyBuddyUrl;
+    const apiKey = process.env.BABYBUDDY_API_KEY || config.apiKey;
+
+    if (!baseUrl || !apiKey) {
+      console.error("[MMM-BabyBuddy] Missing BABYBUDDY_HOST or BABYBUDDY_API_KEY (env or config)");
+      this.sendSocketNotification("BABYBUDDY_DATA", {
+        feeding: null, sleep: null, change: null, timers: null,
+        error: true, errorCode: "MISSING_CREDENTIALS", childNotFound: null,
+      });
+      return;
+    }
+
+    const base = baseUrl.replace(/\/$/, "");
+    const headers = { Authorization: `Token ${apiKey}` };
 
     let childParam = "";
     let childLookupFailed = false;
