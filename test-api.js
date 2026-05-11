@@ -6,7 +6,7 @@
 
 const fetch = require("node-fetch");
 
-const BASE_URL = "https://baby.example.com";
+const BASE_URL = process.env.BABYBUDDY_HOST || "http://localhost:8000";
 const API_KEY  = process.env.BABYBUDDY_API_KEY || "";
 
 if (!API_KEY) {

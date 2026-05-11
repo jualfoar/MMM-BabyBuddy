@@ -9,8 +9,9 @@ module.exports = NodeHelper.create({
   },
 
   socketNotificationReceived(notification, payload) {
-    if (notification === "BABYBUDDY_FETCH_ALL") {
-      this.fetchAll(payload.config);
+    if (notification === "BABYBUDDY_FETCH_ALL" && !this.fetching) {
+      this.fetching = true;
+      this.fetchAll(payload.config).finally(() => { this.fetching = false; });
     }
   },
 
@@ -19,6 +20,7 @@ module.exports = NodeHelper.create({
     const headers = { Authorization: `Token ${config.apiKey}` };
 
     let childParam = "";
+    let childLookupFailed = false;
 
     if (config.childName && config.childName.trim() !== "") {
       try {
@@ -32,6 +34,7 @@ module.exports = NodeHelper.create({
           console.warn(`[MMM-BabyBuddy] Child "${config.childName}" not found — showing all children`);
         }
       } catch (e) {
+        childLookupFailed = true;
         console.error("[MMM-BabyBuddy] Failed to fetch children:", e.message);
       }
     }
@@ -60,7 +63,7 @@ module.exports = NodeHelper.create({
       timers: extract(timersResult),
       error: anyError,
       errorCode,
-      childNotFound: config.childName && childParam === "" ? config.childName : null,
+      childNotFound: !childLookupFailed && config.childName && childParam === "" ? config.childName : null,
     });
   },
 

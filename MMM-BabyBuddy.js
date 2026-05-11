@@ -27,9 +27,14 @@ Module.register("MMM-BabyBuddy", {
 
   scheduleUpdate() {
     this.sendSocketNotification("BABYBUDDY_FETCH_ALL", { config: this.config });
-    setInterval(() => {
+    this.updateInterval = setInterval(() => {
       this.sendSocketNotification("BABYBUDDY_FETCH_ALL", { config: this.config });
     }, this.config.updateInterval);
+  },
+
+  stop() {
+    clearInterval(this.updateInterval);
+    clearInterval(this.timerInterval);
   },
 
   socketNotificationReceived(notification, payload) {
@@ -256,16 +261,18 @@ Module.register("MMM-BabyBuddy", {
     const s = delta % 60;
     const mm = String(m).padStart(2, "0");
     const ss = String(s).padStart(2, "0");
-    return h > 0 ? `${h}:${mm}:${ss}` : `${m}:${ss}`;
+    return h > 0 ? `${h}:${mm}:${ss}` : `${mm}:${ss}`;
   },
 
   parseDuration(durationStr) {
     const parts = durationStr.split(":");
     const h = parseInt(parts[0], 10);
     const m = parseInt(parts[1], 10);
+    const s = parseInt(parts[2], 10);
     if (h > 0 && m > 0) return `${h}h ${m}m`;
     if (h > 0) return `${h}h`;
-    return `${m}m`;
+    if (m > 0) return `${m}m`;
+    return `${s}s`;
   },
 
   capitalize(str) {
