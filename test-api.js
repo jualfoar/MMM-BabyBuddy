@@ -27,22 +27,28 @@ const endpoints = [
 async function test() {
   console.log(`\nTesting Baby Buddy at: ${BASE_URL}\n${"─".repeat(50)}`);
 
-  for (const ep of endpoints) {
-    const url = BASE_URL + ep.path;
-    try {
-      const res = await fetch(url, { headers, timeout: 8000 });
-      if (!res.ok) {
-        console.log(`❌ ${ep.label.padEnd(16)} HTTP ${res.status}`);
-        continue;
+  const results = await Promise.all(
+    endpoints.map(async (ep) => {
+      try {
+        const res = await fetch(BASE_URL + ep.path, { headers, timeout: 8000 });
+        if (!res.ok) return { ep, error: `HTTP ${res.status}` };
+        const json = await res.json();
+        return { ep, json };
+      } catch (e) {
+        return { ep, error: e.message };
       }
-      const json = await res.json();
+    })
+  );
+
+  for (const { ep, json, error } of results) {
+    if (error) {
+      console.log(`❌ ${ep.label.padEnd(16)} ${error}`);
+    } else {
       const count = json.count !== undefined ? ` (${json.count} total)` : "";
       const first = json.results && json.results[0]
         ? "\n   " + JSON.stringify(json.results[0], null, 2).split("\n").join("\n   ")
         : json.results ? "   (no results)" : "";
       console.log(`✅ ${ep.label.padEnd(16)}${count}${first}`);
-    } catch (e) {
-      console.log(`❌ ${ep.label.padEnd(16)} ${e.message}`);
     }
     console.log();
   }

@@ -117,4 +117,5 @@
   color: #f0a500;
   font-variant-numeric: tabular-nums;
   letter-spacing: 0.03em;
+  flex-shrink: 0;
 }

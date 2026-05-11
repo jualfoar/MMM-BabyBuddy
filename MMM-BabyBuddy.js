@@ -20,7 +20,7 @@ Module.register("MMM-BabyBuddy", {
     this.errorCode = null;
     this.childNotFound = null;
     this.loaded = false;
-    this.updateInterval = null;
+    this.fetchInterval = null;
     this.timerInterval = null;
 
     this.scheduleUpdate();
@@ -28,13 +28,13 @@ Module.register("MMM-BabyBuddy", {
 
   scheduleUpdate() {
     this.sendSocketNotification("BABYBUDDY_FETCH_ALL", { config: this.config });
-    this.updateInterval = setInterval(() => {
+    this.fetchInterval = setInterval(() => {
       this.sendSocketNotification("BABYBUDDY_FETCH_ALL", { config: this.config });
     }, this.config.updateInterval);
   },
 
   stop() {
-    clearInterval(this.updateInterval);
+    clearInterval(this.fetchInterval);
     clearInterval(this.timerInterval);
   },
 
@@ -114,7 +114,7 @@ Module.register("MMM-BabyBuddy", {
       primary = this.formatElapsed(new Date(record.start));
       const type = record.type ? this.translateValue(record.type) : "";
       const method = record.method ? this.translateValue(record.method) : "";
-      const amount = record.amount ? ` · ${record.amount} ml` : "";
+      const amount = record.amount ? ` · ${this.translate("UNIT_ML", { amount: record.amount })}` : "";
       secondary = [type, method].filter(Boolean).join(" — ") + amount;
     }
 
@@ -271,6 +271,7 @@ Module.register("MMM-BabyBuddy", {
     const m = parseInt(parts[1], 10);
     const s = parseInt(parts[2], 10);
     if (h > 0 && m > 0) return `${h}h ${m}m`;
+    if (h > 0 && s > 0) return `${h}h ${s}s`;
     if (h > 0) return `${h}h`;
     if (m > 0) return `${m}m`;
     return `${s}s`;

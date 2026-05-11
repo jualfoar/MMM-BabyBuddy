@@ -22,6 +22,7 @@
   "ERROR_AUTH":           "⚠ Error de autenticación — revisa la clave API",
   "ERROR_UNREACHABLE":    "⚠ Baby Buddy no disponible — mostrando últimos datos",
   "CHILD_NOT_FOUND":      "⚠ Niño no encontrado: \"{name}\" — mostrando todos",
+  "UNIT_ML":              "{amount} ml",
   "VALUE_BREAST_MILK":          "Leche materna",
   "VALUE_BOTTLE":               "Biberón",
   "VALUE_SOLID_FOOD":           "Comida sólida",
