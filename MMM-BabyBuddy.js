@@ -6,6 +6,14 @@ Module.register("MMM-BabyBuddy", {
     childName: "",
   },
 
+  getTranslations() {
+    return {
+      en: "translations/en.json",
+      es: "translations/es.json",
+      fr: "translations/fr.json",
+    };
+  },
+
   start() {
     this.data = { feeding: null, sleep: null, change: null, timers: null };
     this.apiError = false;
@@ -56,7 +64,7 @@ Module.register("MMM-BabyBuddy", {
     if (!this.loaded) {
       const loading = document.createElement("div");
       loading.className = "bb-loading";
-      loading.innerText = "Loading Baby Buddy…";
+      loading.innerText = this.translate("LOADING");
       wrapper.appendChild(loading);
       return wrapper;
     }
@@ -68,7 +76,7 @@ Module.register("MMM-BabyBuddy", {
     if (this.childNotFound) {
       const warn = document.createElement("div");
       warn.className = "bb-error-banner";
-      warn.innerText = `⚠ Child not found: "${this.childNotFound}" — showing all`;
+      warn.innerText = this.translate("CHILD_NOT_FOUND", { name: this.childNotFound });
       wrapper.appendChild(warn);
     }
 
@@ -85,70 +93,72 @@ Module.register("MMM-BabyBuddy", {
   renderErrorBanner() {
     const el = document.createElement("div");
     el.className = "bb-error-banner";
-
-    if (this.errorCode === 401) {
-      el.innerText = "⚠ Baby Buddy: authentication error — check API key";
-    } else {
-      el.innerText = "⚠ Baby Buddy unreachable — showing last known data";
-    }
-
+    el.innerText = this.errorCode === 401
+      ? this.translate("ERROR_AUTH")
+      : this.translate("ERROR_UNREACHABLE");
     return el;
   },
 
   renderFeeding(feeding) {
     const record = feeding && feeding.results && feeding.results[0];
-    let primary = "No recent data";
+    let primary = this.translate("NO_RECENT_DATA");
     let secondary = "";
 
     if (record) {
       primary = this.formatElapsed(new Date(record.start));
-      const type = record.type ? this.capitalize(record.type) : "";
-      const method = record.method ? this.capitalize(record.method) : "";
+      const type = record.type ? this.translateValue(record.type) : "";
+      const method = record.method ? this.translateValue(record.method) : "";
       const amount = record.amount ? ` · ${record.amount} ml` : "";
       secondary = [type, method].filter(Boolean).join(" — ") + amount;
     }
 
-    return this.renderCard("🍼", "Last Feeding", primary, secondary, "feeding");
+    return this.renderCard("🍼", this.translate("LAST_FEEDING"), primary, secondary, "feeding");
   },
 
   renderSleep(sleep) {
     const record = sleep && sleep.results && sleep.results[0];
-    let primary = "No recent data";
+    let primary = this.translate("NO_RECENT_DATA");
     let secondary = "";
 
     if (record) {
       if (!record.end) {
-        primary = "Sleeping now";
-        secondary = `Started ${this.formatElapsed(new Date(record.start))}`;
+        primary = this.translate("SLEEPING_NOW");
+        secondary = this.translate("STARTED", { elapsed: this.formatElapsed(new Date(record.start)) });
       } else {
-        primary = `Woke up ${this.formatElapsed(new Date(record.end))}`;
-        secondary = record.duration ? `Duration: ${this.parseDuration(record.duration)}` : "";
+        primary = this.translate("WOKE_UP", { elapsed: this.formatElapsed(new Date(record.end)) });
+        secondary = record.duration
+          ? this.translate("DURATION", { duration: this.parseDuration(record.duration) })
+          : "";
       }
     }
 
-    return this.renderCard("😴", "Last Sleep", primary, secondary, "sleep");
+    return this.renderCard("😴", this.translate("LAST_SLEEP"), primary, secondary, "sleep");
   },
 
   renderChange(change) {
     const record = change && change.results && change.results[0];
-    let primary = "No recent data";
+    let primary = this.translate("NO_RECENT_DATA");
     let secondary = "";
 
     if (record) {
       primary = this.formatElapsed(new Date(record.time));
+
       if (record.wet && record.solid) {
-        secondary = "Wet + Solid";
+        secondary = this.translate("WET_SOLID");
       } else if (record.wet) {
-        secondary = "Wet";
+        secondary = this.translate("WET");
       } else if (record.solid) {
-        secondary = "Solid";
+        secondary = this.translate("SOLID");
       } else {
-        secondary = "Dry";
+        secondary = this.translate("DRY");
       }
-      if (record.color) secondary += ` · ${this.capitalize(record.color)}`;
+
+      if (record.color) {
+        secondary += ` · ${this.translateValue(record.color)}`;
+      }
     }
 
-    return this.renderCard("💧", "Last Change", primary, secondary, "change");
+    return this.renderCard("💧", this.translate("LAST_CHANGE"), primary, secondary, "change");
   },
 
   renderTimers(timers) {
@@ -159,7 +169,7 @@ Module.register("MMM-BabyBuddy", {
 
     const heading = document.createElement("div");
     heading.className = "bb-timers-heading";
-    heading.innerText = "⏱ Active Timers";
+    heading.innerText = `⏱ ${this.translate("ACTIVE_TIMERS")}`;
     container.appendChild(heading);
 
     timers.results.forEach((timer) => {
@@ -168,7 +178,7 @@ Module.register("MMM-BabyBuddy", {
 
       const label = document.createElement("span");
       label.className = "bb-timer-label";
-      label.innerText = timer.name || "Timer";
+      label.innerText = timer.name || this.translate("TIMER");
 
       const elapsed = document.createElement("span");
       elapsed.className = "bb-timer-elapsed";
@@ -216,20 +226,29 @@ Module.register("MMM-BabyBuddy", {
     return card;
   },
 
-  // Formats elapsed time as "2h 15m ago", "45m ago", "just now"
+  // Translates API string values (feeding type, method, diaper color).
+  // Falls back to capitalizing the original if no translation exists.
+  translateValue(value) {
+    if (!value) return "";
+    const lower = value.toLowerCase();
+    const result = this.translate(lower);
+    return result !== lower ? result : this.capitalize(value);
+  },
+
   formatElapsed(date) {
     const delta = Math.floor((Date.now() - date.getTime()) / 1000);
-    if (delta < 60) return "just now";
-    if (delta < 3600) return `${Math.floor(delta / 60)}m ago`;
+    if (delta < 60)   return this.translate("JUST_NOW");
+    if (delta < 3600) return this.translate("MINUTES_AGO", { m: Math.floor(delta / 60) });
     if (delta < 86400) {
       const h = Math.floor(delta / 3600);
       const m = Math.floor((delta % 3600) / 60);
-      return m > 0 ? `${h}h ${m}m ago` : `${h}h ago`;
+      return m > 0
+        ? this.translate("HOURS_MINUTES_AGO", { h, m })
+        : this.translate("HOURS_AGO", { h });
     }
-    return `${Math.floor(delta / 86400)}d ago`;
+    return this.translate("DAYS_AGO", { d: Math.floor(delta / 86400) });
   },
 
-  // For active timers: shows elapsed as "1h 23m 45s"
   formatElapsedLive(date) {
     const delta = Math.floor((Date.now() - date.getTime()) / 1000);
     const h = Math.floor(delta / 3600);
@@ -240,7 +259,6 @@ Module.register("MMM-BabyBuddy", {
     return h > 0 ? `${h}:${mm}:${ss}` : `${m}:${ss}`;
   },
 
-  // Parses "02:30:00" → "2h 30m"
   parseDuration(durationStr) {
     const parts = durationStr.split(":");
     const h = parseInt(parts[0], 10);
