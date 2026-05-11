@@ -102,10 +102,10 @@ Module.register("MMM-BabyBuddy", {
 
     if (record) {
       primary = this.formatElapsed(new Date(record.start));
+      const type = record.type ? this.capitalize(record.type) : "";
       const method = record.method ? this.capitalize(record.method) : "";
-      const side = record.side ? this.capitalize(record.side) : "";
       const amount = record.amount ? ` · ${record.amount} ml` : "";
-      secondary = [method, side].filter(Boolean).join(" — ") + amount;
+      secondary = [type, method].filter(Boolean).join(" — ") + amount;
     }
 
     return this.renderCard("🍼", "Last Feeding", primary, secondary, "feeding");
