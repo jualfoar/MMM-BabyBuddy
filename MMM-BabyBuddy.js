@@ -15,7 +15,9 @@ Module.register("MMM-BabyBuddy", {
   },
 
   start() {
-    this.data = { feeding: null, sleep: null, change: null, timers: null };
+    // NOTE: never assign to `this.data` — MagicMirror reserves it for module metadata
+    // (position, identifier, classes, ...). Use `this.bbState` for our own state.
+    this.bbState = { feeding: null, sleep: null, change: null, timers: null };
     this.apiError = false;
     this.errorCode = null;
     this.childNotFound = null;
@@ -41,7 +43,7 @@ Module.register("MMM-BabyBuddy", {
   socketNotificationReceived(notification, payload) {
     if (notification !== "BABYBUDDY_DATA") return;
 
-    this.data = payload;
+    this.bbState = payload;
     this.apiError = payload.error || false;
     this.errorCode = payload.errorCode || null;
     this.childNotFound = payload.childNotFound || null;
@@ -57,7 +59,7 @@ Module.register("MMM-BabyBuddy", {
       this.timerInterval = null;
     }
 
-    const timers = this.data.timers;
+    const timers = this.bbState.timers;
     if (timers && timers.results && timers.results.length > 0) {
       this.timerInterval = setInterval(() => this.updateDom(), 1000);
     }
@@ -86,11 +88,11 @@ Module.register("MMM-BabyBuddy", {
       wrapper.appendChild(warn);
     }
 
-    wrapper.appendChild(this.renderFeeding(this.data.feeding));
-    wrapper.appendChild(this.renderSleep(this.data.sleep));
-    wrapper.appendChild(this.renderChange(this.data.change));
+    wrapper.appendChild(this.renderFeeding(this.bbState.feeding));
+    wrapper.appendChild(this.renderSleep(this.bbState.sleep));
+    wrapper.appendChild(this.renderChange(this.bbState.change));
 
-    const timersEl = this.renderTimers(this.data.timers);
+    const timersEl = this.renderTimers(this.bbState.timers);
     if (timersEl) wrapper.appendChild(timersEl);
 
     return wrapper;
