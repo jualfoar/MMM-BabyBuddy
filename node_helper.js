@@ -5,6 +5,7 @@ const fetch = require("node-fetch");
 
 module.exports = NodeHelper.create({
   start() {
+    this.fetching = false;
     console.log(`[MMM-BabyBuddy] node_helper started`);
   },
 

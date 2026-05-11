@@ -20,6 +20,7 @@ Module.register("MMM-BabyBuddy", {
     this.errorCode = null;
     this.childNotFound = null;
     this.loaded = false;
+    this.updateInterval = null;
     this.timerInterval = null;
 
     this.scheduleUpdate();
@@ -235,9 +236,9 @@ Module.register("MMM-BabyBuddy", {
   // Falls back to capitalizing the original if no translation exists.
   translateValue(value) {
     if (!value) return "";
-    const lower = value.toLowerCase();
-    const result = this.translate(lower);
-    return result !== lower ? result : this.capitalize(value);
+    const key = "VALUE_" + value.toUpperCase().replace(/ /g, "_");
+    const result = this.translate(key);
+    return result !== key ? result : this.capitalize(value);
   },
 
   formatElapsed(date) {
