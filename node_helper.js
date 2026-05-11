@@ -19,9 +19,18 @@ module.exports = NodeHelper.create({
     console.log(`[MMM-BabyBuddy] node_helper started`);
   },
 
+  // Server-side debug logger. Output goes to `docker logs mm`.
+  // Never accept apiKey, headers, or response bodies here — only structural data.
+  log(config, ...args) {
+    if (config && config.debug) {
+      console.log("[MMM-BabyBuddy]", ...args);
+    }
+  },
+
   socketNotificationReceived(notification, payload) {
     if (notification === "BABYBUDDY_FETCH_ALL" && !this.fetching) {
       this.fetching = true;
+      this.log(payload.config, "BABYBUDDY_FETCH_ALL received");
       this.fetchAll(payload.config).finally(() => { this.fetching = false; });
     }
   },
@@ -42,6 +51,9 @@ module.exports = NodeHelper.create({
 
     const base = baseUrl.replace(/\/$/, "");
     const headers = { Authorization: `Token ${apiKey}` };
+
+    // Note: never log `apiKey`, `headers`, or full response bodies.
+    this.log(config, "fetchAll →", base, "keySource:", process.env.BABYBUDDY_API_KEY ? "env" : "config");
 
     let childParam = "";
     let childLookupFailed = false;
@@ -79,6 +91,15 @@ module.exports = NodeHelper.create({
     const errorCode = [feedingResult, sleepResult, changeResult, timersResult]
       .find((r) => r.status === "rejected" && r.reason && r.reason.code)
       ?.reason?.code || null;
+
+    this.log(config, "fetchAll done", {
+      feeding: feedingResult.status,
+      sleep: sleepResult.status,
+      change: changeResult.status,
+      timers: timersResult.status,
+      anyError,
+      errorCode,
+    });
 
     this.sendSocketNotification("BABYBUDDY_DATA", {
       feeding: extract(feedingResult),

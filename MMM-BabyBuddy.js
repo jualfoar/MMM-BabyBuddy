@@ -4,6 +4,15 @@ Module.register("MMM-BabyBuddy", {
     apiKey: "",
     updateInterval: 60000,
     childName: "",
+    debug: false,
+  },
+
+  // Browser-side debug logger. Output appears in the browser DevTools console.
+  // Safe by default: never accept the apiKey here, only structural data.
+  log(...args) {
+    if (this.config && this.config.debug) {
+      console.log("[MMM-BabyBuddy]", ...args);
+    }
   },
 
   getTranslations() {
@@ -25,12 +34,15 @@ Module.register("MMM-BabyBuddy", {
     this.fetchInterval = null;
     this.timerInterval = null;
 
+    this.log("start() — interval:", this.config.updateInterval, "child:", this.config.childName || "(all)");
     this.scheduleUpdate();
   },
 
   scheduleUpdate() {
+    this.log("requesting BABYBUDDY_FETCH_ALL");
     this.sendSocketNotification("BABYBUDDY_FETCH_ALL", { config: this.config });
     this.fetchInterval = setInterval(() => {
+      this.log("interval tick → requesting BABYBUDDY_FETCH_ALL");
       this.sendSocketNotification("BABYBUDDY_FETCH_ALL", { config: this.config });
     }, this.config.updateInterval);
   },
@@ -42,6 +54,16 @@ Module.register("MMM-BabyBuddy", {
 
   socketNotificationReceived(notification, payload) {
     if (notification !== "BABYBUDDY_DATA") return;
+
+    this.log("received BABYBUDDY_DATA", {
+      hasFeeding: !!(payload.feeding && payload.feeding.results && payload.feeding.results.length),
+      hasSleep:   !!(payload.sleep   && payload.sleep.results   && payload.sleep.results.length),
+      hasChange:  !!(payload.change  && payload.change.results  && payload.change.results.length),
+      activeTimers: (payload.timers && payload.timers.results && payload.timers.results.length) || 0,
+      error: payload.error || false,
+      errorCode: payload.errorCode || null,
+      childNotFound: payload.childNotFound || null,
+    });
 
     this.bbState = payload;
     this.apiError = payload.error || false;
