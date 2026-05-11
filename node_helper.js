@@ -1,7 +1,17 @@
 "use strict";
 
 const NodeHelper = require("node_helper");
+const dns = require("dns");
 const fetch = require("node-fetch");
+
+// Node 17+ defaults DNS result order to "verbatim", which can return IPv6
+// records first. In container environments without IPv6 egress (e.g. the
+// default Docker bridge network), this causes fetch() to fail with ENOTFOUND.
+// Prefer IPv4 so HTTPS calls work in IPv4-only networks. Hosts with full
+// IPv6 connectivity still work fine — A records still resolve first.
+if (typeof dns.setDefaultResultOrder === "function") {
+  dns.setDefaultResultOrder("ipv4first");
+}
 
 module.exports = NodeHelper.create({
   start() {
