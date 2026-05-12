@@ -6,10 +6,10 @@ A [MagicMirror²](https://magicmirror.builders/) module that displays real-time 
 
 | Card | Info displayed |
 |---|---|
-| 🍼 Last Feeding | Time elapsed, feeding type, method/side |
-| 😴 Last Sleep | Time since woke up, duration (or "Sleeping now") |
-| 💧 Last Change | Time elapsed, type (Wet / Solid / Wet + Solid), color |
-| ⏱ Active Timers | Live countdown for any running Baby Buddy timers |
+| 🍼 Last Feeding | Time elapsed, feeding type, method, amount |
+| 😴 Last Sleep | Time since woke up, duration (or "Sleeping now" with elapsed) |
+| 💧 Last Change | Time elapsed, type (Wet / Solid / Wet + Solid / Dry), color |
+| ⏱ Active Timers | Live countup for any running Baby Buddy timers |
 
 ## Languages Supported
 
@@ -55,7 +55,7 @@ In Baby Buddy → **User Settings** → **API Key** → copy the token.
   config: {
     babyBuddyUrl: "http://localhost:8000",  // URL of your Baby Buddy instance
     apiKey: "your-api-key-here",
-    updateInterval: 60000,                  // refresh every 60 seconds
+    updateInterval: 60000,                  // refresh every 60 seconds (in ms)
     childName: ""                           // optional: filter by child's first name
   }
 }
@@ -67,14 +67,35 @@ In Baby Buddy → **User Settings** → **API Key** → copy the token.
 |---|---|---|
 | `babyBuddyUrl` | `"http://localhost:8000"` | URL of your Baby Buddy instance |
 | `apiKey` | `""` | Baby Buddy API token |
-| `updateInterval` | `60000` | Data refresh interval in milliseconds |
-| `childName` | `""` | Filter to a specific child by first name. Leave empty to show data for all children |
+| `updateInterval` | `60000` | Data refresh interval in **milliseconds** (e.g. `60000` = 1 min) |
+| `childName` | `""` | Filter to a specific child by first name. Leave empty to show all children |
+| `debug` | `false` | Enable verbose debug logging (browser DevTools + server console) |
+
+## Credentials via Environment Variables
+
+API credentials can be provided via environment variables instead of (or to override) `config.js`. This keeps secrets out of your config file:
+
+```bash
+BABYBUDDY_HOST=https://baby.example.com
+BABYBUDDY_API_KEY=your-token-here
+```
+
+Environment variables take precedence over `babyBuddyUrl` / `apiKey` in config.
+
+## Debugging
+
+Set `debug: true` in the module config to enable detailed logging:
+
+- **Browser side** — logs appear in the browser's DevTools console
+- **Server side** — logs appear in `docker logs <container>` or the MagicMirror² terminal
+
+The logger never outputs the API key or raw response bodies.
 
 ## Requirements
 
 - MagicMirror² v2.x
 - Baby Buddy instance with API access
-- Node.js ≥ 14
+- Node.js ≥ 14 (≥ 17 recommended for Docker deployments — IPv4 DNS fix)
 
 ## Adding More Languages
 

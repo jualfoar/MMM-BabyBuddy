@@ -31,6 +31,25 @@ Data flow:
 
 Active timers refresh every second via `setInterval` in the browser. All other data refreshes on `updateInterval` (default 60s).
 
+### Key state fields (MMM-BabyBuddy.js)
+
+| Field | Type | Purpose |
+|---|---|---|
+| `this.bbState` | object | API data: `{ feeding, sleep, change, timers }`. Named `bbState` — **not** `this.data`, which MagicMirror2 reserves for internal module metadata. |
+| `this.apiError` | bool | True if any API endpoint failed |
+| `this.errorCode` | number\|string\|null | HTTP status (e.g. `401`) or `"MISSING_CREDENTIALS"` |
+| `this.childNotFound` | string\|null | Child name when lookup found no match |
+| `this.loaded` | bool | False until first successful data fetch |
+| `this.fetchInterval` | id | Handle for the data-refresh interval (not `updateInterval` — that name is reserved for `this.config.updateInterval`) |
+| `this.timerInterval` | id | Handle for the 1-second live-timer tick, null when no timers active |
+
+### Key behaviours (node_helper.js)
+
+- **Credential precedence**: `BABYBUDDY_HOST` / `BABYBUDDY_API_KEY` env vars override `config.babyBuddyUrl` / `config.apiKey`. Missing credentials send `errorCode: "MISSING_CREDENTIALS"` and return early.
+- **Fetch guard**: `this.fetching` flag prevents concurrent API calls if a response is slow.
+- **Parallel requests**: All 4 data endpoints fire simultaneously via `Promise.allSettled` — one failing endpoint doesn't block the others.
+- **Child lookup**: If `childName` is set, a pre-request to `/api/children/` resolves the name to an ID. If the lookup throws (network error), `childLookupFailed` is set so the UI shows a connectivity error rather than a misleading "child not found" message.
+
 ## Baby Buddy API Endpoints Used
 
 All requests use `Authorization: Token <apiKey>`.
@@ -45,7 +64,7 @@ All requests use `Authorization: Token <apiKey>`.
 
 ### Verified API Field Names (from live instance)
 
-**Feedings:** `type` = feeding type (e.g. `"breast milk"`), `method` = detail (e.g. `"right breast"`), no separate `side` field.
+**Feedings:** `type` = feeding type (e.g. `"breast milk"`), `method` = detail (e.g. `"right breast"`), `amount` (numeric, ml), no separate `side` field.
 
 **Changes:** `wet` (bool), `solid` (bool), `color` (string, e.g. `"green"`), `time` (ISO timestamp).
 
@@ -58,7 +77,7 @@ All requests use `Authorization: Token <apiKey>`.
 | `BABYBUDDY_API_KEY` | Baby Buddy API token (from User Settings in Baby Buddy) |
 | `BABYBUDDY_HOST` | Baby Buddy base URL (e.g. `https://baby.example.com`) |
 
-These are set in `~/.claude/settings.json` under `env` for web sessions.
+These are set in `~/.claude/settings.json` under `env` for web sessions. Env vars take precedence over config values.
 
 ## MagicMirror2 Config
 
@@ -69,13 +88,24 @@ These are set in `~/.claude/settings.json` under `env` for web sessions.
   config: {
     babyBuddyUrl: "https://baby.example.com",
     apiKey: "your-api-key-here",
-    updateInterval: 60000,   // ms, default 60s
-    childName: ""            // optional: filter by child's first name
+    updateInterval: 60000,   // ms, default 60s — NOTE: must be ms, not seconds
+    childName: "",           // optional: filter by child's first name
+    debug: false             // set true for verbose DevTools + server logs
   }
 }
 ```
 
-Language is picked up from MagicMirror2's global `language` setting (`en`, `es`, `fr` supported).
+## Translation Keys
+
+Translation files live in `translations/*.json`. All three files (en/es/fr) must stay in sync.
+
+| Key pattern | Purpose |
+|---|---|
+| `UPPERCASE_KEYS` | UI strings (labels, errors, time expressions) |
+| `VALUE_*` | API enum values (e.g. `VALUE_BREAST_MILK`, `VALUE_GREEN`) — namespaced to avoid collision with UI keys |
+| `UNIT_ML` | Amount unit — `"{amount} ml"` — translatable for oz locales |
+
+`translateValue(apiString)` converts an API string to its `VALUE_*` key, then falls back to capitalizing the raw string if no translation exists.
 
 ## Docker Deployment
 
@@ -97,7 +127,7 @@ docker restart <container>
 # Install deps
 npm install
 
-# Test all 5 API endpoints against live Baby Buddy
+# Test all 5 API endpoints against live Baby Buddy (requests run in parallel)
 BABYBUDDY_API_KEY=<key> BABYBUDDY_HOST=<url> node test-api.js
 ```
 
