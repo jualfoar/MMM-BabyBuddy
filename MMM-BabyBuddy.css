@@ -6,7 +6,7 @@
   font-family: inherit;
 }
 
-/* ── Loading & Error states ───────────────────────────── */
+/* ── Loading & Error states ───────────────────── */
 
 .bb-loading {
   text-align: center;
@@ -24,7 +24,7 @@
   margin-bottom: 2px;
 }
 
-/* ── Cards ────────────────────────────────────────────── */
+/* ── Cards ────────────────────────────────── */
 
 .bb-card {
   display: grid;
@@ -79,7 +79,39 @@
   text-overflow: ellipsis;
 }
 
-/* ── Active Timers ────────────────────────────────────── */
+/* ── Child name header ────────────────────── */
+
+.bb-child-name {
+  font-size: 1.0em;
+  font-weight: 700;
+  color: #fff;
+  text-align: center;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding-bottom: 2px;
+}
+
+/* ── Slide indicator dots ───────────────────── */
+
+.bb-dots {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  padding-bottom: 8px;
+}
+
+.bb-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #444;
+}
+
+.bb-dot--active {
+  background: #aaa;
+}
+
+/* ── Active Timers ──────────────────────────── */
 
 .bb-timers {
   padding: 8px 12px;

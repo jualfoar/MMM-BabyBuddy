@@ -4,6 +4,7 @@ Module.register("MMM-BabyBuddy", {
     apiKey: "",
     updateInterval: 60000,
     childName: "",
+    cycleInterval: 10000,
     debug: false,
   },
 
@@ -30,13 +31,15 @@ Module.register("MMM-BabyBuddy", {
   start() {
     // NOTE: never assign to `this.data` — MagicMirror reserves it for module metadata
     // (position, identifier, classes, ...). Use `this.bbState` for our own state.
-    this.bbState = { feeding: null, sleep: null, change: null, timers: null };
+    this.bbState = { children: [] };
     this.apiError = false;
     this.errorCode = null;
     this.childNotFound = null;
     this.loaded = false;
     this.fetchInterval = null;
     this.timerInterval = null;
+    this.slideInterval = null;
+    this.currentChildIndex = 0;
 
     if (this.config.updateInterval < 10000) {
       console.warn(
@@ -66,43 +69,53 @@ Module.register("MMM-BabyBuddy", {
   stop() {
     clearInterval(this.fetchInterval);
     clearInterval(this.timerInterval);
+    clearInterval(this.slideInterval);
   },
 
   socketNotificationReceived(notification, payload) {
     if (notification !== "BABYBUDDY_DATA") return;
 
     this.log("received BABYBUDDY_DATA", {
-      hasFeeding: !!(payload.feeding && payload.feeding.results && payload.feeding.results.length),
-      hasSleep:   !!(payload.sleep   && payload.sleep.results   && payload.sleep.results.length),
-      hasChange:  !!(payload.change  && payload.change.results  && payload.change.results.length),
-      activeTimers: (payload.timers && payload.timers.results && payload.timers.results.length) || 0,
+      children: (payload.children || []).map((c) => c.name),
       error: payload.error || false,
       errorCode: payload.errorCode || null,
       childNotFound: payload.childNotFound || null,
     });
 
-    this.bbState = {
-      feeding: payload.feeding,
-      sleep: payload.sleep,
-      change: payload.change,
-      timers: payload.timers,
-    };
+    this.bbState = { children: payload.children || [] };
     this.apiError = payload.error || false;
     this.errorCode = payload.errorCode || null;
     this.childNotFound = payload.childNotFound || null;
     this.loaded = true;
 
+    if (this.currentChildIndex >= this.bbState.children.length) {
+      this.currentChildIndex = 0;
+    }
+
     this.updateDom(300);
+    this.manageCycle();
     this.manageTimerTick();
   },
 
-  manageTimerTick() {
-    if (this.timerInterval) {
-      clearInterval(this.timerInterval);
-      this.timerInterval = null;
-    }
+  manageCycle() {
+    clearInterval(this.slideInterval);
+    this.slideInterval = null;
 
-    const timers = this.bbState.timers;
+    if (this.bbState.children.length > 1) {
+      this.slideInterval = setInterval(() => {
+        this.currentChildIndex = (this.currentChildIndex + 1) % this.bbState.children.length;
+        this.updateDom(500);
+        this.manageTimerTick();
+      }, this.config.cycleInterval);
+    }
+  },
+
+  manageTimerTick() {
+    clearInterval(this.timerInterval);
+    this.timerInterval = null;
+
+    const child = this.bbState.children[this.currentChildIndex];
+    const timers = child && child.timers;
     if (timers && timers.results && timers.results.length > 0) {
       this.timerInterval = setInterval(() => this.updateDom(), 1000);
     }
@@ -131,14 +144,44 @@ Module.register("MMM-BabyBuddy", {
       wrapper.appendChild(warn);
     }
 
-    wrapper.appendChild(this.renderFeeding(this.bbState.feeding));
-    wrapper.appendChild(this.renderSleep(this.bbState.sleep));
-    wrapper.appendChild(this.renderChange(this.bbState.change));
+    const child = this.bbState.children[this.currentChildIndex];
 
-    const timersEl = this.renderTimers(this.bbState.timers);
+    if (!child) {
+      const noData = document.createElement("div");
+      noData.className = "bb-loading";
+      noData.innerText = this.translate("NO_RECENT_DATA");
+      wrapper.appendChild(noData);
+      return wrapper;
+    }
+
+    const nameEl = document.createElement("div");
+    nameEl.className = "bb-child-name";
+    nameEl.innerText = child.name;
+    wrapper.appendChild(nameEl);
+
+    if (this.bbState.children.length > 1) {
+      wrapper.appendChild(this.renderDots());
+    }
+
+    wrapper.appendChild(this.renderFeeding(child.feeding));
+    wrapper.appendChild(this.renderSleep(child.sleep));
+    wrapper.appendChild(this.renderChange(child.change));
+
+    const timersEl = this.renderTimers(child.timers);
     if (timersEl) wrapper.appendChild(timersEl);
 
     return wrapper;
+  },
+
+  renderDots() {
+    const dotsEl = document.createElement("div");
+    dotsEl.className = "bb-dots";
+    this.bbState.children.forEach((_, i) => {
+      const dot = document.createElement("span");
+      dot.className = "bb-dot" + (i === this.currentChildIndex ? " bb-dot--active" : "");
+      dotsEl.appendChild(dot);
+    });
+    return dotsEl;
   },
 
   renderErrorBanner() {

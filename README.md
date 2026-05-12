@@ -56,7 +56,7 @@ In Baby Buddy → **User Settings** → **API Key** → copy the token.
     babyBuddyUrl: "http://localhost:8000",  // URL of your Baby Buddy instance
     apiKey: "your-api-key-here",
     updateInterval: 60000,                  // refresh every 60 seconds (in ms)
-    childName: ""                           // optional: filter by child's first name
+    childName: ""                           // optional: pin to one child by first name
   }
 }
 ```
@@ -68,7 +68,8 @@ In Baby Buddy → **User Settings** → **API Key** → copy the token.
 | `babyBuddyUrl` | `"http://localhost:8000"` | URL of your Baby Buddy instance |
 | `apiKey` | `""` | Baby Buddy API token |
 | `updateInterval` | `60000` | Data refresh interval in **milliseconds** (e.g. `60000` = 1 min) |
-| `childName` | `""` | Filter to a specific child by first name. Leave empty to show all children |
+| `childName` | `""` | Pin to a single child by first name. Leave empty to cycle through all children |
+| `cycleInterval` | `10000` | Time in **milliseconds** between children when cycling (e.g. `10000` = 10 sec) |
 | `debug` | `false` | Enable verbose debug logging (browser DevTools + server console) |
 
 ## Credentials via Environment Variables

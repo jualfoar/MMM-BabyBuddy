@@ -42,38 +42,78 @@ module.exports = NodeHelper.create({
     if (!baseUrl || !apiKey) {
       console.error("[MMM-BabyBuddy] Missing BABYBUDDY_HOST or BABYBUDDY_API_KEY (env or config)");
       this.sendSocketNotification("BABYBUDDY_DATA", {
-        feeding: null, sleep: null, change: null, timers: null,
-        error: true, errorCode: "MISSING_CREDENTIALS", childNotFound: null,
+        children: [], error: true, errorCode: "MISSING_CREDENTIALS", childNotFound: null,
       });
       return;
     }
 
-    const base = baseUrl.replace(/\/$/, "");
+    const base = baseUrl.replace(/\/$/,  "");
     const headers = { Authorization: `Token ${apiKey}` };
 
     // Note: never log `apiKey`, `headers`, or full response bodies.
     this.log(config, "fetchAll →", base, "keySource:", process.env.BABYBUDDY_API_KEY ? "env" : "config");
 
-    let childParam = "";
-    let childLookupFailed = false;
+    let childrenList = [];
+    let childNotFound = null;
 
-    if (config.childName && config.childName.trim() !== "") {
-      try {
-        const children = await this.fetchEndpoint(base, "/api/children/", headers);
-        const match = (children.results || []).find(
+    try {
+      const childrenData = await this.fetchEndpoint(base, "/api/children/", headers);
+      childrenList = childrenData.results || [];
+
+      if (config.childName && config.childName.trim() !== "") {
+        const match = childrenList.find(
           (c) => (c.first_name || "").toLowerCase() === config.childName.trim().toLowerCase()
         );
         if (match) {
-          childParam = `&child=${match.id}`;
+          childrenList = [match];
         } else {
           console.warn(`[MMM-BabyBuddy] Child "${config.childName}" not found — showing all children`);
+          childNotFound = config.childName;
         }
-      } catch (e) {
-        childLookupFailed = true;
-        console.error("[MMM-BabyBuddy] Failed to fetch children:", e.message);
       }
+    } catch (e) {
+      console.error("[MMM-BabyBuddy] Failed to fetch children:", e.message);
+      this.sendSocketNotification("BABYBUDDY_DATA", {
+        children: [], error: true, errorCode: e.code || null, childNotFound: null,
+      });
+      return;
     }
 
+    const results = await Promise.allSettled(
+      childrenList.map((child) => this.fetchChildData(base, headers, child))
+    );
+
+    const children = results.map((r, i) => {
+      if (r.status === "fulfilled") return r.value;
+      console.error(`[MMM-BabyBuddy] Failed to fetch data for ${childrenList[i].first_name}:`, r.reason && r.reason.message);
+      return {
+        id: childrenList[i].id,
+        name: childrenList[i].first_name || `Child ${i + 1}`,
+        feeding: null, sleep: null, change: null, timers: null,
+      };
+    });
+
+    const anyError = results.some((r) => r.status === "rejected");
+    const errorCode = results
+      .find((r) => r.status === "rejected" && r.reason && r.reason.code)
+      ?.reason?.code || null;
+
+    this.log(config, "fetchAll done", {
+      children: children.map((c) => c.name),
+      anyError,
+      errorCode,
+    });
+
+    this.sendSocketNotification("BABYBUDDY_DATA", {
+      children,
+      error: anyError,
+      errorCode,
+      childNotFound,
+    });
+  },
+
+  async fetchChildData(base, headers, child) {
+    const childParam = `&child=${child.id}`;
     const [feedingResult, sleepResult, changeResult, timersResult] = await Promise.allSettled([
       this.fetchEndpoint(base, `/api/feedings/?limit=1&ordering=-start${childParam}`, headers),
       this.fetchEndpoint(base, `/api/sleep/?limit=1&ordering=-start${childParam}`, headers),
@@ -81,34 +121,16 @@ module.exports = NodeHelper.create({
       this.fetchEndpoint(base, `/api/timers/?active=true${childParam}`, headers),
     ]);
 
-    const extract = (result) => (result.status === "fulfilled" ? result.value : null);
+    const extract = (r) => (r.status === "fulfilled" ? r.value : null);
 
-    const anyError = [feedingResult, sleepResult, changeResult, timersResult].some(
-      (r) => r.status === "rejected"
-    );
-
-    const errorCode = [feedingResult, sleepResult, changeResult, timersResult]
-      .find((r) => r.status === "rejected" && r.reason && r.reason.code)
-      ?.reason?.code || null;
-
-    this.log(config, "fetchAll done", {
-      feeding: feedingResult.status,
-      sleep: sleepResult.status,
-      change: changeResult.status,
-      timers: timersResult.status,
-      anyError,
-      errorCode,
-    });
-
-    this.sendSocketNotification("BABYBUDDY_DATA", {
+    return {
+      id: child.id,
+      name: child.first_name || `Child ${child.id}`,
       feeding: extract(feedingResult),
       sleep: extract(sleepResult),
       change: extract(changeResult),
       timers: extract(timersResult),
-      error: anyError,
-      errorCode,
-      childNotFound: !childLookupFailed && config.childName && childParam === "" ? config.childName : null,
-    });
+    };
   },
 
   async fetchEndpoint(base, path, headers) {
