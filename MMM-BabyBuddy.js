@@ -42,7 +42,6 @@ Module.register("MMM-BabyBuddy", {
     this.log("requesting BABYBUDDY_FETCH_ALL");
     this.sendSocketNotification("BABYBUDDY_FETCH_ALL", { config: this.config });
     this.fetchInterval = setInterval(() => {
-      this.log("interval tick → requesting BABYBUDDY_FETCH_ALL");
       this.sendSocketNotification("BABYBUDDY_FETCH_ALL", { config: this.config });
     }, this.config.updateInterval);
   },
@@ -65,7 +64,12 @@ Module.register("MMM-BabyBuddy", {
       childNotFound: payload.childNotFound || null,
     });
 
-    this.bbState = payload;
+    this.bbState = {
+      feeding: payload.feeding,
+      sleep: payload.sleep,
+      change: payload.change,
+      timers: payload.timers,
+    };
     this.apiError = payload.error || false;
     this.errorCode = payload.errorCode || null;
     this.childNotFound = payload.childNotFound || null;
@@ -123,7 +127,7 @@ Module.register("MMM-BabyBuddy", {
   renderErrorBanner() {
     const el = document.createElement("div");
     el.className = "bb-error-banner";
-    el.innerText = this.errorCode === 401
+    el.innerText = (this.errorCode === 401 || this.errorCode === "MISSING_CREDENTIALS")
       ? this.translate("ERROR_AUTH")
       : this.translate("ERROR_UNREACHABLE");
     return el;

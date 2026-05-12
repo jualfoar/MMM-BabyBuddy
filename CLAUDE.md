@@ -105,6 +105,10 @@ BABYBUDDY_API_KEY=<key> BABYBUDDY_HOST=<url> node test-api.js
 
 - `node-fetch@^2` — v2 required (v3 is ESM-only, incompatible with MagicMirror2's CommonJS node_helper)
 
+## Known Behaviours
+
+- **IPv4 DNS preference**: `node_helper.js` calls `dns.setDefaultResultOrder("ipv4first")` at startup (Node 17+). This is a process-global setting that affects all MagicMirror2 modules in the same Node process — required because Docker's default bridge network has no IPv6 egress, causing `fetch()` to fail with ENOTFOUND when IPv6 is tried first. Hosts with full IPv6 connectivity are unaffected (A records still resolve).
+
 ## Adding More Languages
 
 1. Copy `translations/en.json` to `translations/<lang>.json`
