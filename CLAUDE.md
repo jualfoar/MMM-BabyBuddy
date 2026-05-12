@@ -35,20 +35,22 @@ Active timers refresh every second via `setInterval` in the browser. All other d
 
 | Field | Type | Purpose |
 |---|---|---|
-| `this.bbState` | object | API data: `{ feeding, sleep, change, timers }`. Named `bbState` — **not** `this.data`, which MagicMirror2 reserves for internal module metadata. |
+| `this.bbState` | object | API data: `{ children: [...] }` — array of per-child data objects. Named `bbState` — **not** `this.data`, which MagicMirror2 reserves for internal module metadata. |
+| `this.currentChildIndex` | number | Index of the child currently displayed in the carousel |
 | `this.apiError` | bool | True if any API endpoint failed |
 | `this.errorCode` | number\|string\|null | HTTP status (e.g. `401`) or `"MISSING_CREDENTIALS"` |
 | `this.childNotFound` | string\|null | Child name when lookup found no match |
 | `this.loaded` | bool | False until first successful data fetch |
 | `this.fetchInterval` | id | Handle for the data-refresh interval (not `updateInterval` — that name is reserved for `this.config.updateInterval`) |
 | `this.timerInterval` | id | Handle for the 1-second live-timer tick, null when no timers active |
+| `this.slideInterval` | id | Handle for the child-carousel tick, null when only one child |
 
 ### Key behaviours (node_helper.js)
 
 - **Credential precedence**: `BABYBUDDY_HOST` / `BABYBUDDY_API_KEY` env vars override `config.babyBuddyUrl` / `config.apiKey`. Missing credentials send `errorCode: "MISSING_CREDENTIALS"` and return early.
 - **Fetch guard**: `this.fetching` flag prevents concurrent API calls if a response is slow.
-- **Parallel requests**: All 4 data endpoints fire simultaneously via `Promise.allSettled` — one failing endpoint doesn't block the others.
-- **Child lookup**: If `childName` is set, a pre-request to `/api/children/` resolves the name to an ID. If the lookup throws (network error), `childLookupFailed` is set so the UI shows a connectivity error rather than a misleading "child not found" message.
+- **Per-child parallel requests**: Each child gets its own `fetchChildData()` call with 4 endpoints via `Promise.allSettled`. One failing child doesn't block the others.
+- **Child filter**: If `childName` is set, only that child is fetched (no carousel). If the name isn't found, `childNotFound` is set and all children are shown.
 
 ## Baby Buddy API Endpoints Used
 
@@ -56,11 +58,11 @@ All requests use `Authorization: Token <apiKey>`.
 
 | Data | Endpoint |
 |---|---|
-| Last feeding | `GET /api/feedings/?limit=1&ordering=-start` |
-| Last sleep | `GET /api/sleep/?limit=1&ordering=-start` |
-| Last diaper change | `GET /api/changes/?limit=1&ordering=-time` |
-| Active timers | `GET /api/timers/?active=true` |
-| Children (optional filter) | `GET /api/children/` |
+| Children list | `GET /api/children/` |
+| Last feeding | `GET /api/feedings/?limit=1&ordering=-start&child=<id>` |
+| Last sleep | `GET /api/sleep/?limit=1&ordering=-start&child=<id>` |
+| Last diaper change | `GET /api/changes/?limit=1&ordering=-time&child=<id>` |
+| Active timers | `GET /api/timers/?active=true&child=<id>` |
 
 ### Verified API Field Names (from live instance)
 
@@ -84,12 +86,13 @@ These are set in `~/.claude/settings.json` under `env` for web sessions. Env var
 ```js
 {
   module: "MMM-BabyBuddy",
-  position: "top_right",
+  position: "middle_center",
   config: {
     babyBuddyUrl: "https://baby.example.com",
     apiKey: "your-api-key-here",
     updateInterval: 60000,   // ms, default 60s — NOTE: must be ms, not seconds
-    childName: "",           // optional: filter by child's first name
+    cycleInterval: 10000,    // ms between child slides (multi-child)
+    childName: "",           // optional: pin to one child, disables cycling
     debug: false             // set true for verbose DevTools + server logs
   }
 }
