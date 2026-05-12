@@ -11,6 +11,8 @@ A [MagicMirror²](https://magicmirror.builders/) module that displays real-time 
 | 💧 Last Change | Time elapsed, type (Wet / Solid / Wet + Solid / Dry), color |
 | ⏱ Active Timers | Live countup for any running Baby Buddy timers |
 
+When multiple children are tracked, the display automatically cycles through each child with a name header and dot indicators.
+
 ## Languages Supported
 
 English (`en`) · Spanish (`es`) · French (`fr`)
@@ -51,12 +53,13 @@ In Baby Buddy → **User Settings** → **API Key** → copy the token.
 // config/config.js
 {
   module: "MMM-BabyBuddy",
-  position: "top_right",
+  position: "middle_center",
   config: {
     babyBuddyUrl: "http://localhost:8000",  // URL of your Baby Buddy instance
     apiKey: "your-api-key-here",
     updateInterval: 60000,                  // refresh every 60 seconds (in ms)
-    childName: ""                           // optional: pin to one child by first name
+    cycleInterval: 10000,                   // seconds per child slide (multi-child)
+    childName: ""                           // optional: pin to one child, disables cycling
   }
 }
 ```
@@ -68,9 +71,19 @@ In Baby Buddy → **User Settings** → **API Key** → copy the token.
 | `babyBuddyUrl` | `"http://localhost:8000"` | URL of your Baby Buddy instance |
 | `apiKey` | `""` | Baby Buddy API token |
 | `updateInterval` | `60000` | Data refresh interval in **milliseconds** (e.g. `60000` = 1 min) |
-| `childName` | `""` | Pin to a single child by first name. Leave empty to cycle through all children |
-| `cycleInterval` | `10000` | Time in **milliseconds** between children when cycling (e.g. `10000` = 10 sec) |
+| `cycleInterval` | `10000` | Time in **milliseconds** between child slides when multiple children are tracked (e.g. `10000` = 10 sec) |
+| `childName` | `""` | Pin to a single child by first name. Leave empty to cycle through all children automatically |
 | `debug` | `false` | Enable verbose debug logging (browser DevTools + server console) |
+
+## Multi-Child Support
+
+With multiple children in Baby Buddy, the module automatically:
+
+1. Fetches all children from `/api/children/`
+2. Loads each child's feeding, sleep, diaper, and timer data in parallel
+3. Cycles through children every `cycleInterval` milliseconds, showing their name and a dot indicator
+
+To show only one specific child (no cycling), set `childName: "Alice"` in the config.
 
 ## Credentials via Environment Variables
 
