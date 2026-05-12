@@ -16,7 +16,6 @@ if (typeof dns.setDefaultResultOrder === "function") {
 module.exports = NodeHelper.create({
   start() {
     this.fetching = false;
-    console.log(`[MMM-BabyBuddy] node_helper started`);
   },
 
   // Server-side debug logger. Output goes to `docker logs mm`.

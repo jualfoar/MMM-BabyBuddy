@@ -34,6 +34,13 @@ Module.register("MMM-BabyBuddy", {
     this.fetchInterval = null;
     this.timerInterval = null;
 
+    if (this.config.updateInterval < 10000) {
+      console.warn(
+        `[MMM-BabyBuddy] updateInterval is ${this.config.updateInterval} ms — this will hammer the API.` +
+        ` Did you mean ${this.config.updateInterval * 1000} ms?`
+      );
+    }
+
     this.log("start() — interval:", this.config.updateInterval, "child:", this.config.childName || "(all)");
     this.scheduleUpdate();
   },
@@ -142,7 +149,8 @@ Module.register("MMM-BabyBuddy", {
       primary = this.formatElapsed(new Date(record.start));
       const type = record.type ? this.translateValue(record.type) : "";
       const method = record.method ? this.translateValue(record.method) : "";
-      const amount = record.amount ? ` · ${this.translate("UNIT_ML", { amount: record.amount })}` : "";
+      const raw = record.amount != null ? parseFloat(record.amount) : null;
+      const amount = raw != null ? ` · ${this.translate("UNIT_ML", { amount: +raw.toFixed(1) })}` : "";
       secondary = [type, method].filter(Boolean).join(" — ") + amount;
     }
 
@@ -270,6 +278,7 @@ Module.register("MMM-BabyBuddy", {
   },
 
   formatElapsed(date) {
+    if (!date || isNaN(date.getTime())) return this.translate("NO_RECENT_DATA");
     const delta = Math.floor((Date.now() - date.getTime()) / 1000);
     if (delta < 60)   return this.translate("JUST_NOW");
     if (delta < 3600) return this.translate("MINUTES_AGO", { m: Math.floor(delta / 60) });
@@ -294,10 +303,13 @@ Module.register("MMM-BabyBuddy", {
   },
 
   parseDuration(durationStr) {
+    if (!durationStr || typeof durationStr !== "string") return "";
     const parts = durationStr.split(":");
+    if (parts.length < 3) return durationStr;
     const h = parseInt(parts[0], 10);
     const m = parseInt(parts[1], 10);
     const s = parseInt(parts[2], 10);
+    if (isNaN(h) || isNaN(m) || isNaN(s)) return durationStr;
     if (h > 0 && m > 0) return `${h}h ${m}m`;
     if (h > 0 && s > 0) return `${h}h ${s}s`;
     if (h > 0) return `${h}h`;
