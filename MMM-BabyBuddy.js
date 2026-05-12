@@ -15,6 +15,10 @@ Module.register("MMM-BabyBuddy", {
     }
   },
 
+  getStyles() {
+    return ["MMM-BabyBuddy.css"];
+  },
+
   getTranslations() {
     return {
       en: "translations/en.json",
@@ -51,6 +55,12 @@ Module.register("MMM-BabyBuddy", {
     this.fetchInterval = setInterval(() => {
       this.sendSocketNotification("BABYBUDDY_FETCH_ALL", { config: this.config });
     }, this.config.updateInterval);
+  },
+
+  notificationReceived(notification) {
+    if (notification === "ALL_MODULES_STARTED" && this.loaded) {
+      this.updateDom();
+    }
   },
 
   stop() {
